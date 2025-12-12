@@ -1,934 +1,437 @@
 <!DOCTYPE html>
-<html lang="de">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>TastenZauber - Tippen lernen für Kinder</title>
-    
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.js"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@300;400;600&display=swap" rel="stylesheet">
-
+    <title>Hungry Dog Typer</title>
     <style>
-        /* --- CSS STYLING --- */
-        :root {
-            --primary: #FF9AA2;
-            --secondary: #B5EAD7;
-            --accent: #FFB7B2;
-            --text: #6d5c6d;
-            --dark: #4A404F;
-            --keyboard-bg: rgba(255, 255, 255, 0.85);
-            --key-bg: #fff;
-            --key-active: #C7CEEA;
-        }
+        @import url('https://fonts.googleapis.com/css2?family=Fredoka+One&display=swap');
 
         body {
             margin: 0;
             overflow: hidden;
-            font-family: 'Fredoka', sans-serif;
-            background-color: #E2F0CB;
-            color: var(--text);
+            background: linear-gradient(to bottom, #87CEEB, #E0F7FA);
+            font-family: 'Fredoka One', cursive;
             user-select: none;
         }
 
-        #canvas-container {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            z-index: 1;
-        }
-
-        /* --- UI OVERLAY --- */
         #ui-layer {
             position: absolute;
             top: 0;
             left: 0;
             width: 100%;
-            height: 100%;
+            padding: 20px;
+            box-sizing: border-box;
+            display: flex;
+            justify-content: space-between;
             z-index: 10;
-            pointer-events: none; /* Let clicks pass to 3D if needed, though we use buttons */
-            display: flex;
-            flex-direction: column;
-            justify-content: space-between;
         }
 
-        .ui-element {
-            pointer-events: auto;
-        }
-
-        /* --- HEADER & STATS --- */
-        header {
-            padding: 20px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-
-        .score-box {
-            background: white;
+        .stat-box {
+            background: rgba(255, 255, 255, 0.8);
             padding: 10px 20px;
-            border-radius: 30px;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
-            font-size: 1.2rem;
-            font-weight: 600;
-            display: flex;
-            gap: 15px;
-            align-items: center;
+            border-radius: 15px;
+            border: 3px solid #FF9800;
+            font-size: 24px;
+            color: #333;
         }
 
-        .progress-container {
-            width: 300px;
-            height: 20px;
-            background: rgba(255,255,255,0.5);
+        #settings-panel {
+            display: flex;
+            gap: 10px;
+        }
+
+        .toggle-btn {
+            cursor: pointer;
+            padding: 5px 15px;
             border-radius: 10px;
-            overflow: hidden;
-            position: relative;
-        }
-
-        .progress-bar {
-            height: 100%;
-            background: linear-gradient(90deg, #FF9AA2, #FFB7B2);
-            width: 0%;
-            transition: width 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-        }
-
-        /* --- CENTER DISPLAY --- */
-        #target-display {
-            position: absolute;
-            top: 30%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            text-align: center;
-            text-shadow: 0 2px 0 rgba(255,255,255,0.5);
-        }
-
-        #current-char {
-            font-size: 6rem;
+            background: #4CAF50;
             color: white;
-            text-shadow: 0 4px 15px rgba(0,0,0,0.2);
-            font-weight: bold;
-            animation: float 3s ease-in-out infinite;
+            border: none;
+            font-family: inherit;
+        }
+        .toggle-btn.off {
+            background: #F44336;
         }
 
-        #next-chars {
-            font-size: 1.5rem;
-            color: rgba(255,255,255,0.7);
-            letter-spacing: 5px;
-            margin-top: 10px;
+        #game-container {
+            position: relative;
+            width: 100vw;
+            height: 100vh;
         }
 
-        /* --- KEYBOARD --- */
-        #keyboard-wrapper {
-            margin-bottom: 20px;
-            display: flex;
-            justify-content: center;
+        /* The Ground */
+        #ground {
+            position: absolute;
+            bottom: 0;
             width: 100%;
+            height: 100px;
+            background: #8BC34A;
+            border-top: 10px solid #689F38;
+            z-index: 1;
         }
 
-        .keyboard {
-            background: var(--keyboard-bg);
-            padding: 20px;
-            border-radius: 20px;
-            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
-            backdrop-filter: blur(5px);
-            display: grid;
-            grid-template-rows: repeat(4, 1fr);
-            gap: 8px;
-            width: 800px;
+        /* The Dog */
+        #dog {
+            position: absolute;
+            bottom: 70px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 100px;
+            z-index: 2;
+            transition: transform 0.1s;
+        }
+        
+        /* Dog Animations */
+        .eating { transform: translateX(-50%) scale(1.2) !important; }
+        .jumping { animation: bounce 0.5s infinite alternate; }
+        .squatting { transform: translateX(-50%) scaleY(0.7) !important; }
+
+        @keyframes bounce {
+            from { bottom: 70px; }
+            to { bottom: 150px; }
         }
 
-        .row {
-            display: flex;
-            justify-content: center;
-            gap: 8px;
-        }
-
-        .key {
+        /* Falling Letters */
+        .letter {
+            position: absolute;
             width: 50px;
             height: 50px;
-            background: var(--key-bg);
-            border-radius: 8px;
+            background: #FFF;
+            border-radius: 50%;
+            border: 3px solid #FF5722;
             display: flex;
-            align-items: center;
             justify-content: center;
-            font-weight: bold;
-            font-size: 1.1rem;
-            box-shadow: 0 4px 0 #ddd;
-            color: var(--dark);
-            transition: all 0.1s;
+            align-items: center;
+            font-size: 28px;
+            color: #333;
+            box-shadow: 0 4px 0 rgba(0,0,0,0.2);
+            z-index: 2;
         }
 
-        .key.wide { width: 80px; }
-        .key.space { width: 300px; }
-
-        .key.active {
-            background: var(--primary);
-            color: white;
-            box-shadow: 0 4px 0 #D68C94;
-            transform: translateY(2px);
-            border: 2px solid white;
-        }
-
-        .key.pressed {
-            transform: translateY(4px);
-            box-shadow: 0 0 0 #ddd;
-        }
-
-        /* --- MENUS --- */
-        .overlay-screen {
+        /* Poop Letters */
+        .poop-letter {
             position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(255, 255, 255, 0.9);
-            z-index: 100;
+            font-size: 24px;
+            color: #5D4037; /* Poop color */
+            font-weight: bold;
+            z-index: 1;
+            transition: all 1s ease-out;
+        }
+
+        #start-screen, #level-screen {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.7);
             display: flex;
             flex-direction: column;
             justify-content: center;
             align-items: center;
-            text-align: center;
+            color: white;
+            z-index: 20;
+        }
+
+        button.main-btn {
+            font-family: 'Fredoka One', cursive;
+            font-size: 30px;
+            padding: 15px 40px;
+            background: #FF9800;
+            border: none;
+            border-radius: 50px;
+            color: white;
+            cursor: pointer;
+            box-shadow: 0 6px 0 #F57C00;
+            transition: transform 0.1s;
+        }
+        button.main-btn:active {
+            transform: translateY(4px);
+            box-shadow: 0 2px 0 #F57C00;
         }
 
         .hidden { display: none !important; }
-
-        h1 { font-size: 4rem; color: var(--primary); margin: 0; text-shadow: 2px 2px 0 #fff; }
-        h2 { color: var(--text); }
-
-        .btn {
-            background: var(--secondary);
-            border: none;
-            padding: 15px 40px;
-            border-radius: 50px;
-            font-size: 1.5rem;
-            font-family: 'Fredoka', sans-serif;
-            font-weight: bold;
-            color: var(--dark);
-            cursor: pointer;
-            margin: 10px;
-            box-shadow: 0 5px 0 #8AC6B3;
-            transition: transform 0.1s;
-        }
-        .btn:hover { transform: scale(1.05); }
-        .btn:active { transform: scale(0.95) translateY(5px); box-shadow: none; }
-        .btn.small { padding: 10px 20px; font-size: 1rem; }
-
-        .level-grid {
-            display: grid;
-            grid-template-columns: repeat(4, 1fr);
-            gap: 15px;
-            margin-top: 30px;
-        }
-        
-        .level-btn {
-            background: #fff;
-            border: 2px solid var(--secondary);
-            padding: 15px;
-            border-radius: 15px;
-            cursor: pointer;
-            transition: all 0.2s;
-        }
-        .level-btn:hover { background: var(--secondary); }
-        .level-btn.locked { opacity: 0.5; cursor: not-allowed; background: #eee; }
-
-        /* --- ANIMATIONS --- */
-        @keyframes float {
-            0%, 100% { transform: translateY(0); }
-            50% { transform: translateY(-20px); }
-        }
-
-        @keyframes shake {
-            0% { transform: translateX(0); }
-            25% { transform: translateX(-5px); }
-            75% { transform: translateX(5px); }
-            100% { transform: translateX(0); }
-        }
-        .shake { animation: shake 0.3s; }
-
-        /* --- MINI GAME --- */
-        #mini-game-canvas {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            z-index: 50;
-            background: rgba(0,0,0,0.3);
-            display: none;
-        }
     </style>
 </head>
 <body>
 
-    <div id="canvas-container"></div>
-    <canvas id="mini-game-canvas"></canvas>
-
-    <div id="ui-layer" class="hidden">
-        <header class="ui-element">
-            <button class="btn small" id="btn-menu">🏠 Menü</button>
-            <div class="score-box">
-                <span>⭐ <span id="score-val">0</span></span>
-                <div class="progress-container">
-                    <div class="progress-bar" id="prog-bar"></div>
-                </div>
-            </div>
-            <button class="btn small" id="btn-sound">🔊 An</button>
-        </header>
-
-        <div id="target-display">
-            <div id="current-char">Start!</div>
-            <div id="next-chars"></div>
-        </div>
-
-        <div id="keyboard-wrapper" class="ui-element">
-            <div class="keyboard" id="onscreen-keyboard">
-                </div>
+    <div id="ui-layer">
+        <div class="stat-box">Level: <span id="level-display">1</span></div>
+        <div class="stat-box">Score: <span id="score-display">0</span></div>
+        <div id="settings-panel">
+            <button id="btn-music" class="toggle-btn" onclick="toggleMusic()">Music: ON</button>
+            <button id="btn-sfx" class="toggle-btn" onclick="toggleSFX()">SFX: ON</button>
         </div>
     </div>
 
-    <div id="start-screen" class="overlay-screen">
-        <h1>TastenZauber</h1>
-        <h2>Lerne Tippen mit dem magischen Fuchs!</h2>
-        <button class="btn" id="btn-start-game">Los geht's!</button>
-        <p style="margin-top: 20px; font-size: 0.8rem; color: #999;">Tipp: Schalte den Ton ein 🔊</p>
+    <div id="start-screen">
+        <h1>HUNGRY TYPER DOG</h1>
+        <p>Type the falling letters to feed the dog!</p>
+        <div style="font-size: 60px; margin-bottom: 20px;">🐶😋🦴</div>
+        <button class="main-btn" onclick="startGame()">START GAME</button>
     </div>
 
-    <div id="level-screen" class="overlay-screen hidden">
-        <h1>Level Auswahl</h1>
-        <div class="level-grid" id="level-container">
-            </div>
+    <div id="level-screen" class="hidden">
+        <h1 id="level-msg">LEVEL COMPLETE!</h1>
+        <div style="font-size: 80px;" id="level-emoji">💩</div>
+        <p>The dog is full... wait for it...</p>
     </div>
 
-    <div id="modal-screen" class="overlay-screen hidden" style="background: rgba(255,255,255,0.8);">
-        <h1 id="modal-title">Super!</h1>
-        <p id="modal-desc">Level geschafft!</p>
-        <button class="btn" id="btn-modal-action">Weiter</button>
+    <div id="game-container">
+        <div id="dog">🐶</div>
+        <div id="ground"></div>
     </div>
 
-    <script>
-        /**
-         * TastenZauber - Main Application Logic
-         */
+<script>
+    // --- Configuration ---
+    const DOG_AVATARS = ['🐶', '🐕', '🐩', '🐺', '🦊', '🐷', '🦄', '🦖']; // Evolves into weird stuff
+    let currentState = 'START'; // START, PLAYING, LEVEL_END, GAME_OVER
+    let score = 0;
+    let level = 1;
+    let gameSpeed = 1.5; // Pixels per frame
+    let spawnRate = 60; // Frames between spawns
+    let frameCount = 0;
+    
+    // Audio State
+    let sfxEnabled = true;
+    let musicEnabled = true;
+    let audioCtx = new (window.AudioContext || window.webkitAudioContext)();
 
-        // --- LEVEL DATA (German QWERTZ Progression) ---
-        const LEVELS = [
-            { id: 1, name: "Grundstellung 1", keys: "fj", content: "fff jjj fjfj jfjf fff jjj fjf jfj" },
-            { id: 2, name: "Grundstellung 2", keys: "dk", content: "ddd kkk ddkk kkdd djdk kdfj" },
-            { id: 3, name: "Grundstellung 3", keys: "sl", content: "sss lll slsl lssl sldk fjls" },
-            { id: 4, name: "Grundstellung 4", keys: "aö", content: "aaa ööö aöaö öaöa asdf jklö" },
-            { id: 5, name: "Zeigefinger", keys: "gh", content: "ggg hhh ghgh hghg fghj jhgf lag jagd" },
-            { id: 6, name: "Wörter 1", keys: "all", content: "hallo da als das glas ja saal fass" },
-            { id: 7, name: "Oberreihe 1", keys: "ru", content: "rrr uuu ru ru ruf ufer sau raus" },
-            { id: 8, name: "Oberreihe 2", keys: "ei", content: "eee iii ei ei eis reis lies sie" },
-        ];
+    // Game Objects
+    let letters = []; // Array of active letter objects
+    let dogElement = document.getElementById('dog');
+    
+    // --- Audio System (Synth - No files needed) ---
+    function playTone(freq, type, duration) {
+        if (!sfxEnabled) return;
+        if (audioCtx.state === 'suspended') audioCtx.resume();
+        const osc = audioCtx.createOscillator();
+        const gainNode = audioCtx.createGain();
+        osc.type = type;
+        osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+        gainNode.gain.setValueAtTime(0.1, audioCtx.currentTime);
+        gainNode.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + duration);
+        osc.connect(gainNode);
+        gainNode.connect(audioCtx.destination);
+        osc.start();
+        osc.stop(audioCtx.currentTime + duration);
+    }
 
-        // --- AUDIO MANAGER (UPDATED: Calm Piano & Lullaby) ---
-        class AudioManager {
-            constructor() {
-                this.ready = false;
-                this.enabled = true;
-                
-                // --- Effects ---
-                // Reverb to make it dreamy
-                this.reverb = new Tone.Reverb({
-                    decay: 2.5,
-                    wet: 0.4
-                }).toDestination();
+    function playEatSound() { playTone(600 + Math.random()*200, 'triangle', 0.1); }
+    function playPoopSound() { playTone(100, 'sawtooth', 0.5); }
+    function playWinSound() { 
+        if(!sfxEnabled) return;
+        setTimeout(() => playTone(523.25, 'sine', 0.2), 0);
+        setTimeout(() => playTone(659.25, 'sine', 0.2), 200);
+        setTimeout(() => playTone(783.99, 'sine', 0.4), 400);
+    }
+    
+    // Simple looping bg melody helper (simulated)
+    // Real music loop omitted for code brevity, but logic is here
+    let musicInterval;
+    function startMusic() {
+        if (!musicEnabled || musicInterval) return;
+        // Very basic rhythmic beat
+        musicInterval = setInterval(() => {
+            if(musicEnabled && currentState === 'PLAYING') {
+                playTone(200, 'sine', 0.1);
+            }
+        }, 1000);
+    }
 
-                // --- Instruments ---
-                
-                // 1. Piano (for correct keys)
-                // Using a PolySynth with a specific envelope to sound like a soft Electric Piano / Rhodes
-                this.piano = new Tone.PolySynth(Tone.Synth, {
-                    oscillator: { type: "sine" }, // Sine wave is soft
-                    envelope: {
-                        attack: 0.01,
-                        decay: 0.3,
-                        sustain: 0.1,
-                        release: 1.5
-                    },
-                    volume: -8
-                }).connect(this.reverb);
+    function toggleSFX() {
+        sfxEnabled = !sfxEnabled;
+        const btn = document.getElementById('btn-sfx');
+        btn.innerText = sfxEnabled ? "SFX: ON" : "SFX: OFF";
+        btn.classList.toggle('off');
+    }
 
-                // 2. Error Sound (Soft thud, not annoying)
-                this.errorSynth = new Tone.MembraneSynth({
-                    pitchDecay: 0.05,
-                    octaves: 2,
-                    oscillator: { type: "sine" },
-                    envelope: {
-                        attack: 0.001,
-                        decay: 0.2,
-                        sustain: 0,
-                        release: 1
-                    },
-                    volume: -5
-                }).toDestination();
+    function toggleMusic() {
+        musicEnabled = !musicEnabled;
+        const btn = document.getElementById('btn-music');
+        btn.innerText = musicEnabled ? "Music: ON" : "Music: OFF";
+        btn.classList.toggle('off');
+    }
 
-                // 3. Background Music Synth (Pad-like)
-                this.bgmSynth = new Tone.PolySynth(Tone.Synth, {
-                    oscillator: { type: "triangle" },
-                    envelope: {
-                        attack: 2,
-                        decay: 1,
-                        sustain: 0.5,
-                        release: 3
-                    },
-                    volume: -20
-                }).connect(this.reverb);
+    // --- Game Logic ---
 
-                // Add a lowpass filter to BGM to make it "underwater" / gentle
-                this.bgmFilter = new Tone.Filter(600, "lowpass").toDestination();
-                this.bgmSynth.connect(this.bgmFilter);
+    function startGame() {
+        document.getElementById('start-screen').classList.add('hidden');
+        resetLevel();
+        currentState = 'PLAYING';
+        startMusic();
+        gameLoop();
+    }
+
+    function resetLevel() {
+        letters.forEach(l => l.element.remove());
+        letters = [];
+        // Set dog avatar based on level
+        dogElement.innerText = DOG_AVATARS[(level - 1) % DOG_AVATARS.length];
+        dogElement.className = '';
+        gameSpeed = 1.5 + (level * 0.5);
+        spawnRate = Math.max(20, 70 - (level * 5));
+    }
+
+    function spawnLetter() {
+        const charCode = 65 + Math.floor(Math.random() * 26); // A-Z
+        const char = String.fromCharCode(charCode);
+        
+        const el = document.createElement('div');
+        el.classList.add('letter');
+        el.innerText = char;
+        
+        // Random X position
+        const x = Math.random() * (window.innerWidth - 60);
+        el.style.left = x + 'px';
+        el.style.top = '-60px';
+        
+        document.getElementById('game-container').appendChild(el);
+        
+        letters.push({
+            char: char.toLowerCase(),
+            element: el,
+            y: -60,
+            x: x
+        });
+    }
+
+    function update() {
+        if (currentState !== 'PLAYING') return;
+
+        frameCount++;
+        if (frameCount % spawnRate === 0) spawnLetter();
+
+        // Move letters
+        for (let i = 0; i < letters.length; i++) {
+            const l = letters[i];
+            l.y += gameSpeed;
+            l.element.style.top = l.y + 'px';
+
+            // Dog tracks the lowest letter
+            if (i === 0) {
+                // Determine direction to look/move slightly (optional visual flair)
+                // dogElement.style.left = (window.innerWidth / 2) + ((l.x - window.innerWidth/2) * 0.1) + 'px'; 
             }
 
-            async init() {
-                if (this.ready) return;
-                await Tone.start();
-                this.ready = true;
-                this.startBGM();
-            }
-
-            toggle() {
-                this.enabled = !this.enabled;
-                if(this.enabled) {
-                    Tone.Destination.mute = false;
-                    return true;
-                } else {
-                    Tone.Destination.mute = true;
-                    return false;
-                }
-            }
-
-            playCorrect() {
-                if (!this.ready || !this.enabled) return;
-                // Pentatonic Scale (C Major Pentatonic) - Always sounds good together
-                // Notes: C4, D4, E4, G4, A4
-                const scale = ["C4", "D4", "E4", "G4", "A4", "C5"];
-                const note = scale[Math.floor(Math.random() * scale.length)];
-                
-                // Short, gentle chime
-                this.piano.triggerAttackRelease(note, "8n");
-            }
-
-            playWrong() {
-                if (!this.ready || !this.enabled) return;
-                // Low, soft thud (gentle reminder)
-                this.errorSynth.triggerAttackRelease("C2", "8n");
-            }
-
-            playWin() {
-                if (!this.ready || !this.enabled) return;
-                const now = Tone.now();
-                // A happy C Major arpeggio, played softly
-                this.piano.triggerAttackRelease("C4", "8n", now);
-                this.piano.triggerAttackRelease("E4", "8n", now + 0.2);
-                this.piano.triggerAttackRelease("G4", "8n", now + 0.4);
-                this.piano.triggerAttackRelease("C5", "1n", now + 0.6);
-            }
-
-            startBGM() {
-                // Slower, ambient progression (Lullaby style)
-                Tone.Transport.bpm.value = 60; // Slow tempo
-
-                // Progression: I - IV - I - V (C Maj -> F Maj -> C Maj -> G Maj)
-                const chords = [
-                    ["C3", "E3", "G3"], 
-                    ["F3", "A3", "C4"],
-                    ["C3", "E3", "G3"],
-                    ["G3", "B3", "D4"]
-                ];
-
-                let chordIndex = 0;
-
-                const loop = new Tone.Loop(time => {
-                    if (!this.enabled) return;
-                    
-                    const currentChord = chords[chordIndex % chords.length];
-                    // Play chord very softly and long
-                    this.bgmSynth.triggerAttackRelease(currentChord, "1m", time); // 1 measure length
-                    
-                    chordIndex++;
-                }, "1m").start(0);
-
-                Tone.Transport.start();
+            // Check collision with ground
+            if (l.y > window.innerHeight - 150) {
+                // Game Over logic could go here, but for kids we just reset score or flash red
+                l.element.style.backgroundColor = 'red';
+                // For this demo, we just remove it to keep it forgiving
+                l.element.remove();
+                letters.splice(i, 1);
+                i--;
             }
         }
 
-        // --- 3D GRAPHICS (Three.js) ---
-        class World3D {
-            constructor(containerId) {
-                this.container = document.getElementById(containerId);
-                
-                // Scene Setup
-                this.scene = new THREE.Scene();
-                this.scene.fog = new THREE.FogExp2(0xE2F0CB, 0.02);
-
-                this.camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-                this.camera.position.set(0, 2, 8);
-                this.camera.lookAt(0, 1, 0);
-
-                this.renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
-                this.renderer.setSize(window.innerWidth, window.innerHeight);
-                this.renderer.setPixelRatio(window.devicePixelRatio);
-                this.container.appendChild(this.renderer.domElement);
-
-                // Lighting
-                const hemiLight = new THREE.HemisphereLight(0xffffff, 0xffffff, 0.6);
-                this.scene.add(hemiLight);
-                const dirLight = new THREE.DirectionalLight(0xffffff, 0.8);
-                dirLight.position.set(5, 10, 7);
-                this.scene.add(dirLight);
-
-                // Objects
-                this.mascot = new THREE.Group();
-                this.createMascot();
-                this.scene.add(this.mascot);
-
-                this.createEnvironment();
-                this.createParticles();
-
-                // Resize handler
-                window.addEventListener('resize', () => this.onResize());
-
-                // Animation Loop
-                this.clock = new THREE.Clock();
-                this.animate();
-            }
-
-            createMascot() {
-                // "Minecraft" Style Fox/Robot
-                const matBody = new THREE.MeshStandardMaterial({ color: 0xFF9AA2 }); // Pink
-                const matWhite = new THREE.MeshStandardMaterial({ color: 0xFFFFFF });
-                const matDark = new THREE.MeshStandardMaterial({ color: 0x333333 });
-
-                // Body
-                const body = new THREE.Mesh(new THREE.BoxGeometry(1.5, 1.5, 1.5), matBody);
-                body.position.y = 1;
-                this.mascot.add(body);
-
-                // Head
-                const head = new THREE.Mesh(new THREE.BoxGeometry(1.2, 1.2, 1.2), matBody);
-                head.position.y = 2.4;
-                this.mascot.add(head);
-
-                // Ears
-                const earL = new THREE.Mesh(new THREE.BoxGeometry(0.4, 0.4, 0.2), matBody);
-                earL.position.set(-0.4, 3.1, 0);
-                this.mascot.add(earL);
-                const earR = earL.clone();
-                earR.position.set(0.4, 3.1, 0);
-                this.mascot.add(earR);
-
-                // Eyes
-                const eyeL = new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.2, 0.1), matDark);
-                eyeL.position.set(-0.3, 2.4, 0.6);
-                this.mascot.add(eyeL);
-                const eyeR = eyeL.clone();
-                eyeR.position.set(0.3, 2.4, 0.6);
-                this.mascot.add(eyeR);
-
-                // Snout
-                const snout = new THREE.Mesh(new THREE.BoxGeometry(0.4, 0.3, 0.2), matWhite);
-                snout.position.set(0, 2.1, 0.65);
-                this.mascot.add(snout);
-
-                this.mascotBaseY = 0;
-            }
-
-            createEnvironment() {
-                // Floating Islands
-                const geometry = new THREE.CylinderGeometry(3, 1, 3, 6);
-                const material = new THREE.MeshStandardMaterial({ color: 0xB5EAD7, flatShading: true });
-                
-                const mainIsland = new THREE.Mesh(geometry, material);
-                mainIsland.position.y = -2;
-                this.scene.add(mainIsland);
-
-                for(let i=0; i<5; i++) {
-                    const smol = new THREE.Mesh(geometry, material);
-                    smol.scale.set(0.3, 0.3, 0.3);
-                    smol.position.set(
-                        (Math.random() - 0.5) * 15,
-                        (Math.random() * 5) - 2,
-                        (Math.random() - 0.5) * 10 - 5
-                    );
-                    this.scene.add(smol);
-                }
-            }
-
-            createParticles() {
-                const geometry = new THREE.BufferGeometry();
-                const vertices = [];
-                for ( let i = 0; i < 200; i ++ ) {
-                    vertices.push(
-                        THREE.MathUtils.randFloatSpread( 20 ),
-                        THREE.MathUtils.randFloatSpread( 20 ),
-                        THREE.MathUtils.randFloatSpread( 20 )
-                    );
-                }
-                geometry.setAttribute( 'position', new THREE.Float32BufferAttribute( vertices, 3 ) );
-                const particles = new THREE.Points( geometry, new THREE.PointsMaterial( { color: 0xFFFFFF, size: 0.1 } ) );
-                this.scene.add( particles );
-                this.particles = particles;
-            }
-
-            jump() {
-                // Simple jump trigger
-                this.jumpTime = 0;
-                this.isJumping = true;
-            }
-
-            animate() {
-                requestAnimationFrame(() => this.animate());
-                const delta = this.clock.getDelta();
-                const time = this.clock.getElapsedTime();
-
-                // Mascot Float
-                if (this.isJumping) {
-                    this.jumpTime += delta * 5;
-                    this.mascot.position.y = Math.sin(this.jumpTime) * 1.5;
-                    this.mascot.rotation.y += 0.1;
-                    if(this.jumpTime > Math.PI) {
-                        this.isJumping = false;
-                        this.mascot.rotation.y = 0;
-                        this.mascot.position.y = 0;
-                    }
-                } else {
-                    this.mascot.position.y = Math.sin(time * 1.5) * 0.2;
-                }
-
-                // Particles Rotation
-                if(this.particles) this.particles.rotation.y += 0.001;
-
-                this.renderer.render(this.scene, this.camera);
-            }
-
-            onResize() {
-                this.camera.aspect = window.innerWidth / window.innerHeight;
-                this.camera.updateProjectionMatrix();
-                this.renderer.setSize(window.innerWidth, window.innerHeight);
-            }
+        // Level Up condition (every 100 points)
+        if (score > 0 && score % 100 === 0 && frameCount % 10 === 0) { // debounce logic
+             triggerLevelEnd();
         }
+    }
 
-        // --- GAME LOGIC ---
-        class Game {
-            constructor() {
-                this.audio = new AudioManager();
-                this.world = new World3D('canvas-container');
-                this.currentLevelIdx = 0;
-                this.targetString = "";
-                this.currentIndex = 0;
-                this.score = 0;
-                this.errors = 0;
-                this.isGameActive = false;
-                this.unlockedLevels = parseInt(localStorage.getItem('tastenZauberLevel')) || 1;
+    function triggerLevelEnd() {
+        currentState = 'LEVEL_END';
+        playWinSound();
+        
+        // 1. Dog Jumps Happy
+        dogElement.classList.add('jumping');
+        
+        setTimeout(() => {
+            // 2. Dog Stops Jumping, Squats
+            dogElement.classList.remove('jumping');
+            dogElement.classList.add('squatting');
+            playPoopSound();
+            
+            // 3. The Funny Poop Explosion
+            explodeLetters();
 
-                this.ui = {
-                    screens: {
-                        start: document.getElementById('start-screen'),
-                        game: document.getElementById('ui-layer'),
-                        level: document.getElementById('level-screen'),
-                        modal: document.getElementById('modal-screen')
-                    },
-                    display: {
-                        current: document.getElementById('current-char'),
-                        next: document.getElementById('next-chars'),
-                        score: document.getElementById('score-val'),
-                        bar: document.getElementById('prog-bar')
-                    },
-                    keyboard: document.getElementById('onscreen-keyboard')
-                };
-
-                this.initKeyboardUI();
-                this.setupListeners();
-                this.renderLevelSelect();
-            }
-
-            // --- KEYBOARD MAPPING (German QWERTZ) ---
-            initKeyboardUI() {
-                // Simplified German QWERTZ Layout
-                const rows = [
-                    ["^", "1", "2", "3", "4", "5", "6", "7", "8", "9", "0", "ß", "´"],
-                    ["q", "w", "e", "r", "t", "z", "u", "i", "o", "p", "ü", "+"],
-                    ["a", "s", "d", "f", "g", "h", "j", "k", "l", "ö", "ä", "#"],
-                    ["<", "y", "x", "c", "v", "b", "n", "m", ",", ".", "-", "SHIFT"]
-                ];
-
-                const container = this.ui.keyboard;
-                container.innerHTML = "";
-
-                rows.forEach(rowKeys => {
-                    const rowDiv = document.createElement('div');
-                    rowDiv.className = 'row';
-                    rowKeys.forEach(char => {
-                        const keyDiv = document.createElement('div');
-                        keyDiv.className = 'key';
-                        keyDiv.textContent = char.toUpperCase();
-                        keyDiv.dataset.char = char; // Store lowercase for matching
-                        
-                        if(char.length > 1) keyDiv.classList.add('wide');
-                        
-                        rowDiv.appendChild(keyDiv);
-                    });
-                    container.appendChild(rowDiv);
-                });
+            setTimeout(() => {
+                // 4. Next Level Prep
+                dogElement.classList.remove('squatting');
+                level++;
+                document.getElementById('level-display').innerText = level;
                 
-                // Add Spacebar row
-                const spaceRow = document.createElement('div');
-                spaceRow.className = 'row';
-                const spaceKey = document.createElement('div');
-                spaceKey.className = 'key space';
-                spaceKey.dataset.char = " ";
-                spaceKey.textContent = "LEERTASTE";
-                spaceRow.appendChild(spaceKey);
-                container.appendChild(spaceRow);
-            }
-
-            setupListeners() {
-                // Buttons
-                document.getElementById('btn-start-game').onclick = () => {
-                    this.audio.init();
-                    this.showScreen('level');
-                };
-
-                document.getElementById('btn-menu').onclick = () => {
-                    this.isGameActive = false;
-                    this.showScreen('level');
-                };
-
-                document.getElementById('btn-sound').onclick = (e) => {
-                    const on = this.audio.toggle();
-                    e.target.textContent = on ? "🔊 An" : "🔇 Aus";
-                };
-
-                document.getElementById('btn-modal-action').onclick = () => {
-                    this.ui.screens.modal.classList.add('hidden');
-                    this.startMiniGame();
-                };
-
-                // Typing
-                window.addEventListener('keydown', (e) => this.handleTyping(e));
-                window.addEventListener('keyup', (e) => this.handleKeyUp(e));
-            }
-
-            renderLevelSelect() {
-                const container = document.getElementById('level-container');
-                container.innerHTML = "";
-                LEVELS.forEach((lvl, idx) => {
-                    const btn = document.createElement('div');
-                    btn.className = 'level-btn';
-                    const isLocked = (idx + 1) > this.unlockedLevels;
-                    
-                    if (isLocked) btn.classList.add('locked');
-                    btn.innerHTML = `<h3>Level ${lvl.id}</h3><p>${lvl.name}</p>`;
-                    
-                    if (!isLocked) {
-                        btn.onclick = () => this.startLevel(idx);
-                    }
-                    container.appendChild(btn);
-                });
-            }
-
-            showScreen(name) {
-                Object.values(this.ui.screens).forEach(el => el.classList.add('hidden'));
-                if (name === 'game') this.ui.screens.game.classList.remove('hidden');
-                else if (name === 'level') {
-                    this.renderLevelSelect();
-                    this.ui.screens.level.classList.remove('hidden');
-                }
-                else if (name === 'start') this.ui.screens.start.classList.remove('hidden');
-                else if (name === 'modal') this.ui.screens.modal.classList.remove('hidden');
-            }
-
-            startLevel(index) {
-                this.currentLevelIdx = index;
-                this.targetString = LEVELS[index].content;
-                this.currentIndex = 0;
-                this.score = 0;
-                this.isGameActive = true;
-                this.updateDisplay();
-                this.showScreen('game');
-                this.highlightKey(this.targetString[0]);
-            }
-
-            handleTyping(e) {
-                if (!this.isGameActive) return;
-
-                // Map key code to German char logic roughly if needed, 
-                // but usually e.key works fine for modern browsers.
-                let char = e.key;
-
-                // Visual Feedback on Keyboard
-                const keyEl = this.findKeyElement(char);
-                if (keyEl) keyEl.classList.add('pressed');
-
-                // Game Logic
-                const expected = this.targetString[this.currentIndex];
+                // Show Level Screen
+                const screen = document.getElementById('level-screen');
+                screen.classList.remove('hidden');
+                document.getElementById('level-emoji').innerText = DOG_AVATARS[level % DOG_AVATARS.length] || '🐕';
                 
-                if (char === expected) {
-                    // Correct
-                    this.audio.playCorrect();
-                    this.score += 10;
-                    this.currentIndex++;
-                    this.world.jump(); // Mascot animation
-                    
-                    // Check completion
-                    if (this.currentIndex >= this.targetString.length) {
-                        this.levelComplete();
-                    } else {
-                        this.updateDisplay();
-                        this.highlightKey(this.targetString[this.currentIndex]);
-                    }
-                } else {
-                    // Ignore modifiers
-                    if (char.length === 1) {
-                        this.audio.playWrong();
-                        this.ui.display.current.classList.add('shake');
-                        setTimeout(() => this.ui.display.current.classList.remove('shake'), 300);
-                    }
-                }
-                
-                this.ui.display.score.innerText = this.score;
-            }
+                setTimeout(() => {
+                    screen.classList.add('hidden');
+                    resetLevel();
+                    currentState = 'PLAYING';
+                }, 3000);
+            }, 1500);
 
-            handleKeyUp(e) {
-                const keyEl = this.findKeyElement(e.key);
-                if (keyEl) keyEl.classList.remove('pressed');
-            }
+        }, 2000);
+    }
 
-            findKeyElement(char) {
-                const lower = char.toLowerCase();
-                // Select by data-char
-                return document.querySelector(`.key[data-char="${lower}"]`);
-            }
+    // The Surreal Poop Mechanic
+    function explodeLetters() {
+        // Create 10-15 random letters flying out from the dog
+        const rect = dogElement.getBoundingClientRect();
+        const originX = rect.left + rect.width / 2;
+        const originY = rect.top + rect.height / 2;
 
-            highlightKey(char) {
-                // Remove old active
-                document.querySelectorAll('.key.active').forEach(el => el.classList.remove('active'));
-                const el = this.findKeyElement(char);
-                if (el) el.classList.add('active');
-            }
+        for(let i=0; i<15; i++) {
+            const p = document.createElement('div');
+            p.classList.add('poop-letter');
+            // Random letter or poop emoji
+            p.innerText = Math.random() > 0.5 ? String.fromCharCode(65+Math.floor(Math.random()*26)) : '💩'; 
+            p.style.left = originX + 'px';
+            p.style.top = originY + 'px';
+            document.body.appendChild(p);
 
-            updateDisplay() {
-                const current = this.targetString[this.currentIndex];
-                const next = this.targetString.substring(this.currentIndex + 1, this.currentIndex + 10);
-                
-                this.ui.display.current.textContent = current === " " ? "␣" : current;
-                this.ui.display.next.textContent = next.replace(/ /g, "␣");
+            // Animate outwards
+            setTimeout(() => {
+                const angle = Math.random() * Math.PI; // Upward arc
+                const velocity = 100 + Math.random() * 200;
+                const destX = (Math.cos(angle) * velocity);
+                const destY = -Math.abs(Math.sin(angle) * velocity) + 200; // gravity
 
-                const pct = (this.currentIndex / this.targetString.length) * 100;
-                this.ui.display.bar.style.width = `${pct}%`;
-            }
+                p.style.transform = `translate(${destX}px, ${destY}px) rotate(${Math.random()*360}deg)`;
+                p.style.opacity = 0;
+            }, 50);
 
-            levelComplete() {
-                this.isGameActive = false;
-                this.audio.playWin();
-                
-                // Unlock next level
-                if (this.currentLevelIdx + 1 >= this.unlockedLevels) {
-                    this.unlockedLevels++;
-                    localStorage.setItem('tastenZauberLevel', this.unlockedLevels);
-                }
-
-                document.getElementById('modal-title').innerText = "Klasse gemacht!";
-                document.getElementById('modal-desc').innerText = "Jetzt füttere das Tier!";
-                document.getElementById('btn-modal-action').innerText = "Füttern spielen";
-                this.showScreen('modal');
-            }
-
-            // --- MINI GAME: Falling Letters ---
-            startMiniGame() {
-                this.showScreen('none'); // Hide UI
-                const canvas = document.getElementById('mini-game-canvas');
-                canvas.style.display = 'block';
-                const ctx = canvas.getContext('2d');
-                canvas.width = window.innerWidth;
-                canvas.height = window.innerHeight;
-
-                const letters = [];
-                const possible = LEVELS[this.currentLevelIdx].keys + LEVELS[this.currentLevelIdx].keys.toUpperCase();
-                let gameRunning = true;
-                let fedCount = 0;
-                const maxFed = 10;
-
-                // Spawn Loop
-                const spawner = setInterval(() => {
-                    if (!gameRunning) return;
-                    const char = possible.charAt(Math.floor(Math.random() * possible.length));
-                    letters.push({
-                        char: char,
-                        x: Math.random() * (canvas.width - 100) + 50,
-                        y: -50,
-                        speed: 2 + Math.random() * 2
-                    });
-                }, 1000);
-
-                // Input for Mini Game
-                const miniHandler = (e) => {
-                    const char = e.key;
-                    // Find matching falling letter
-                    const idx = letters.findIndex(l => l.char === char && l.y < canvas.height - 100);
-                    if (idx > -1) {
-                        letters.splice(idx, 1);
-                        fedCount++;
-                        this.audio.playCorrect();
-                        this.world.jump(); // Mascot jumps
-                        if(fedCount >= maxFed) endGame();
-                    }
-                };
-                window.addEventListener('keydown', miniHandler);
-
-                const endGame = () => {
-                    gameRunning = false;
-                    clearInterval(spawner);
-                    window.removeEventListener('keydown', miniHandler);
-                    canvas.style.display = 'none';
-                    
-                    // Back to Level Select
-                    this.showScreen('level');
-                };
-
-                // Render Loop
-                const loop = () => {
-                    if (!gameRunning) return;
-                    ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-                    // Draw "Mouth" zone at bottom
-                    ctx.fillStyle = "rgba(255, 154, 162, 0.5)";
-                    ctx.beginPath();
-                    ctx.arc(canvas.width/2, canvas.height, 100, Math.PI, 0);
-                    ctx.fill();
-                    ctx.fillStyle = "white";
-                    ctx.font = "20px Fredoka";
-                    ctx.fillText(`Futter: ${fedCount}/${maxFed}`, canvas.width/2 - 40, canvas.height - 20);
-
-                    // Draw Letters
-                    ctx.font = "bold 40px Fredoka";
-                    ctx.fillStyle = "white";
-                    for (let i = 0; i < letters.length; i++) {
-                        const l = letters[i];
-                        l.y += l.speed;
-                        ctx.fillText(l.char, l.x, l.y);
-
-                        // Missed letter
-                        if (l.y > canvas.height) {
-                            letters.splice(i, 1);
-                            i--;
-                        }
-                    }
-                    requestAnimationFrame(loop);
-                };
-                loop();
-            }
+            // Cleanup
+            setTimeout(() => p.remove(), 1100);
         }
+    }
 
-        // --- INIT ---
-        window.onload = () => {
-            const app = new Game();
-        };
+    function gameLoop() {
+        update();
+        requestAnimationFrame(gameLoop);
+    }
 
-    </script>
+    // --- Input Handling ---
+    window.addEventListener('keydown', (e) => {
+        if (currentState !== 'PLAYING') return;
+
+        const key = e.key.toLowerCase();
+        
+        // Find the lowest letter that matches the key
+        // We filter for matching keys, then sort by Y position (highest Y = lowest on screen)
+        const matchIndex = letters.findIndex(l => l.char === key);
+
+        if (matchIndex !== -1) {
+            // Success!
+            const target = letters[matchIndex];
+            
+            // Visual feedback on dog
+            dogElement.classList.add('eating');
+            setTimeout(() => dogElement.classList.remove('eating'), 100);
+            
+            // Remove letter
+            target.element.remove();
+            letters.splice(matchIndex, 1);
+            
+            // Score
+            score += 10;
+            document.getElementById('score-display').innerText = score;
+            playEatSound();
+        }
+    });
+
+</script>
 </body>
 </html>
